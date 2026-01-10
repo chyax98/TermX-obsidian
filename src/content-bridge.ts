@@ -10,24 +10,13 @@ export interface EditorCursorState {
 export class ContentBridge {
   private terminal: Terminal;
   private app: App;
-  private outputBuffer: string[] = [];
-  private maxBufferSize = 1000;
   private getCursorState: () => EditorCursorState | null;
 
   constructor(terminal: Terminal, app: App, getCursorState: () => EditorCursorState | null) {
     this.terminal = terminal;
     this.app = app;
     this.getCursorState = getCursorState;
-    this.captureOutput();
-  }
-
-  private captureOutput(): void {
-    this.terminal.onData((data) => {
-      this.outputBuffer.push(data);
-      if (this.outputBuffer.length > this.maxBufferSize) {
-        this.outputBuffer.shift();
-      }
-    });
+    // Removed captureOutput() - we don't need to capture user input
   }
 
   // 获取终端选中的文本

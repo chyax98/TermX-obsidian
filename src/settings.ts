@@ -20,9 +20,11 @@ function getFontPresetKey(stack: string): string {
   for (const [key, preset] of Object.entries(FONT_PRESETS)) {
     if (preset.stack === normalized) return key;
   }
-  // 兼容旧默认值
+  // 兼容旧默认值 - Menlo 字体栈
+  if (normalized === 'Menlo, Monaco, "Courier New", monospace') return 'menlo';
+  // 兼容其他旧默认值
   if (normalized === '' || normalized === 'monospace') return 'system';
-  return 'system';
+  return 'menlo';  // 默认显示为 Menlo
 }
 
 export class TerminalSettingTab extends PluginSettingTab {

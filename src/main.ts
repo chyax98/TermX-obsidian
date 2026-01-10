@@ -113,7 +113,8 @@ export default class IntegratedTerminalPlugin extends Plugin {
     this.addSettingTab(new TerminalSettingTab(this.app, this));
 
     // 添加 Ribbon 图标
-    this.addRibbonIcon('terminal', '打开终端', () => this.activateView());
+    // 添加侧边栏图标（使用 terminal-square 图标，方形终端设计）
+    this.addRibbonIcon('terminal-square', '打开终端', () => this.activateView());
   }
 
   async activateView(): Promise<void> {

@@ -84,7 +84,7 @@ export const DEFAULT_SETTINGS: TerminalSettings = {
   shell: '',
   shellArgs: [],
   fontSize: 14,
-  fontFamily: 'var(--font-monospace, monospace)',
+  fontFamily: 'Menlo, Monaco, "Courier New", monospace',  // 默认使用 Menlo（不依赖 Obsidian 设置）
   cursorStyle: 'block',
   scrollback: 5000,
   copyOnSelect: true,

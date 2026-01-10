@@ -8,8 +8,6 @@ import { DragDropHandler } from './drag-drop';
 import { ContentBridge, EditorCursorState } from './content-bridge';
 import { TerminalSettings, THEMES } from './types';
 
-let tabCounter = 0;
-
 function resolveCssVarColor(varName: string, fallback: string, kind: 'color' | 'background'): string {
   try {
     const el = document.createElement('div');
@@ -41,7 +39,8 @@ function getAutoTheme(): ITheme {
     background: resolveCssVarColor('--background-primary', isDark ? '#1e1e1e' : '#fafafa', 'background'),
     foreground: resolveCssVarColor('--text-normal', isDark ? '#d4d4d4' : '#383a42', 'color'),
     cursor: resolveCssVarColor('--text-normal', isDark ? '#d4d4d4' : '#383a42', 'color'),
-    selectionBackground: resolveCssVarColor('--text-selection', isDark ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)', 'background'),
+    selectionBackground: resolveCssVarColor('--text-selection', isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)', 'background'),
+    selectionForeground: undefined, // Let xterm use the default foreground color
   };
 }
 
@@ -71,9 +70,10 @@ export class TerminalTab {
     settings: TerminalSettings,
     pluginDir: string,
     getCursorState: () => EditorCursorState | null,
+    id: number,
     cwdOverride?: string | null,
   ) {
-    this.id = ++tabCounter;
+    this.id = id;
     this.app = app;
     this.settings = settings;
     this.pluginDir = pluginDir;
@@ -91,6 +91,8 @@ export class TerminalTab {
       cursorBlink: true,
       scrollback: settings.scrollback,
       theme,
+      letterSpacing: 0,  // 明确设置字符间距为 0
+      lineHeight: 1.0,   // 设置行高为 1.0（紧凑模式）
     });
 
     this.fitAddon = new FitAddon();
@@ -128,7 +130,7 @@ export class TerminalTab {
 
       if (key === 'v') {
         void navigator.clipboard.readText()
-          .then((text) => this.terminal.paste(text))
+          .then((text) => this.ptyManager.write(text))
           .catch(() => null);
         return false;
       }
@@ -177,6 +179,16 @@ export class TerminalTab {
   private async startPty(): Promise<void> {
     const { cols, rows } = this.terminal;
 
+    // IMPORTANT: Dispose old listeners FIRST to prevent duplicate event handlers
+    if (this.onDataDisposable) {
+      this.onDataDisposable.dispose();
+      this.onDataDisposable = null;
+    }
+    if (this.onResizeDisposable) {
+      this.onResizeDisposable.dispose();
+      this.onResizeDisposable = null;
+    }
+
     await this.ptyManager.spawn(
       (data) => this.terminal.write(data),
       (code) => {
@@ -188,8 +200,7 @@ export class TerminalTab {
       this.cwdOverride ?? undefined
     );
 
-    this.onDataDisposable?.dispose();
-    this.onResizeDisposable?.dispose();
+    // Set up new listeners AFTER spawn completes
     this.onDataDisposable = this.terminal.onData((data) => this.ptyManager.write(data));
     this.onResizeDisposable = this.terminal.onResize(({ cols, rows }) => this.ptyManager.resize(cols, rows));
   }

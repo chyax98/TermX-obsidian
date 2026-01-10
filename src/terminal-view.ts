@@ -87,6 +87,16 @@ export class TerminalView extends ItemView {
     this.getInitialCwd = getInitialCwd ?? null;
   }
 
+  // Get next available tab number
+  private getNextTabId(): number {
+    const usedIds = new Set(this.tabs.map(t => t.id));
+    let id = 1;
+    while (usedIds.has(id)) {
+      id++;
+    }
+    return id;
+  }
+
   getViewType(): string {
     return TERMINAL_VIEW_TYPE;
   }
@@ -96,7 +106,7 @@ export class TerminalView extends ItemView {
   }
 
   getIcon(): string {
-    return 'terminal';
+    return 'terminal-square';
   }
 
   async onOpen(): Promise<void> {
@@ -138,7 +148,8 @@ export class TerminalView extends ItemView {
   private async createTab(cwdOverride?: string): Promise<void> {
     if (!this.terminalArea) return;
 
-    const tab = new TerminalTab(this.app, this.settings, this.pluginDir, this.getCursorState, cwdOverride ?? null);
+    const tabId = this.getNextTabId();
+    const tab = new TerminalTab(this.app, this.settings, this.pluginDir, this.getCursorState, tabId, cwdOverride ?? null);
     this.tabs.push(tab);
 
     // 创建终端容器
