@@ -1,0 +1,9 @@
+{
+  "id": "termx",
+  "name": "TermX",
+  "version": "1.0.0",
+  "minAppVersion": "1.4.0",
+  "description": "Modern terminal deeply integrated with Obsidian - path linking, drag-drop, content sync",
+  "author": "chyax98",
+  "isDesktopOnly": true
+}

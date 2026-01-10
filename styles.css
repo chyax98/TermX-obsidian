@@ -1,0 +1,180 @@
+.terminal-view-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--background-primary);
+  color: var(--text-normal);
+}
+
+/* 标签栏 */
+.terminal-tab-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 8px;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.terminal-tabs {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.terminal-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--background-secondary-alt);
+  color: var(--text-muted);
+  border-radius: 4px 4px 0 0;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.terminal-tab:hover {
+  background: var(--background-modifier-hover);
+}
+
+.terminal-tab.active {
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border: 1px solid var(--background-modifier-border);
+  border-bottom: none;
+}
+
+.terminal-tab .exited {
+  color: var(--text-faint);
+  font-style: italic;
+}
+
+.tab-close {
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 0 2px;
+}
+
+.tab-close:hover {
+  color: var(--text-normal);
+}
+
+.terminal-tab-add,
+.terminal-tab-search {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.terminal-tab-add:hover,
+.terminal-tab-search:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.terminal-tab-add {
+  margin-left: 4px;
+}
+
+.terminal-wrapper {
+  flex: 1;
+  padding: 8px;
+  padding-bottom: 24px;
+  overflow: hidden;
+  display: flex;
+  min-height: 0;
+  background: var(--background-primary);
+}
+
+.terminal-wrapper.hidden {
+  display: none;
+}
+
+.terminal-area {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  min-height: 0;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: var(--background-primary);
+}
+
+.terminal-wrapper .xterm {
+  flex: 1;
+  height: 100%;
+  width: 100%;
+}
+
+.terminal-drag-over {
+  outline: 2px dashed #007acc;
+  outline-offset: -2px;
+}
+
+/* === Minimal xterm.js CSS (required for render/input) === */
+.xterm {
+  cursor: text;
+  position: relative;
+  user-select: none;
+  -ms-user-select: none;
+  -webkit-user-select: none;
+}
+
+.xterm.focus,
+.xterm:focus {
+  outline: none;
+}
+
+.xterm .xterm-helpers {
+  position: absolute;
+  top: 0;
+  z-index: 5;
+}
+
+.xterm .xterm-helper-textarea {
+  padding: 0;
+  border: 0;
+  margin: 0;
+  position: absolute;
+  opacity: 0;
+  left: -9999em;
+  top: 0;
+  width: 0;
+  height: 0;
+  z-index: -5;
+  white-space: nowrap;
+  overflow: hidden;
+  resize: none;
+}
+
+.xterm .xterm-viewport {
+  background-color: transparent;
+  overflow-y: scroll;
+  cursor: default;
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: 0;
+  bottom: 0;
+}
+
+.xterm .xterm-screen {
+  position: relative;
+}
+
+.xterm .xterm-screen canvas {
+  position: absolute;
+  left: 0;
+  top: 0;
+}
+
+.xterm .xterm-scroll-area {
+  visibility: hidden;
+}
