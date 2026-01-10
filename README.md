@@ -44,7 +44,16 @@ Obsidian 集成终端插件，简洁实用。
    - `node-pty/` (原生模块目录)
 3. 重启 Obsidian，启用插件
 
-> **注意**: `node-pty` 是原生模块，需要与 Obsidian 的 Electron 版本匹配。当前构建适用于 macOS (Apple Silicon)。
+## 兼容性
+
+| 平台 | 支持 |
+|------|------|
+| macOS (Apple Silicon) | ✅ |
+| macOS (Intel) | ❌ |
+| Windows | ❌ |
+| Linux | ❌ |
+
+> `node-pty` 是原生模块，需要针对特定平台和 Electron 版本编译。当前仅支持 macOS Apple Silicon + Obsidian 1.7+。
 
 ## 技术栈
 
