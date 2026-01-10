@@ -37,8 +37,14 @@ Obsidian 集成终端插件，简洁实用。
 ## 安装
 
 1. 下载 Release
-2. 解压到 `.obsidian/plugins/termx/`
+2. 解压到 `.obsidian/plugins/termx/`，确保包含：
+   - `main.js`
+   - `manifest.json`
+   - `styles.css`
+   - `node-pty/` (原生模块目录)
 3. 重启 Obsidian，启用插件
+
+> **注意**: `node-pty` 是原生模块，需要与 Obsidian 的 Electron 版本匹配。当前构建适用于 macOS (Apple Silicon)。
 
 ## 技术栈
 
