@@ -176,12 +176,8 @@ export class TerminalTab {
         return true;
       }
 
-      if (key === 'v') {
-        void navigator.clipboard.readText()
-          .then((text) => this.ptyManager.write(text))
-          .catch(() => null);
-        return false;
-      }
+      // 注意：不处理 Cmd+V，让 xterm.js 内置粘贴处理
+      // 避免重复粘贴
 
       if (key === 'k') {
         this.ptyManager.write('\x0c'); // Ctrl+L 清屏
