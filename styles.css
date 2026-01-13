@@ -370,13 +370,49 @@
 /* Fix selection visibility */
 .xterm .xterm-selection div {
   position: absolute;
-  background-color: rgba(255, 255, 255, 0.3) !important;
+  background-color: rgba(100, 149, 237, 0.4) !important; /* 使用更明显的蓝色 */
 }
 
 .theme-dark .xterm .xterm-selection div {
-  background-color: rgba(255, 255, 255, 0.3) !important;
+  background-color: rgba(100, 149, 237, 0.5) !important; /* 深色主题下更亮 */
 }
 
 .theme-light .xterm .xterm-selection div {
-  background-color: rgba(0, 0, 0, 0.3) !important;
+  background-color: rgba(66, 133, 244, 0.35) !important; /* 浅色主题下适中 */
+}
+
+/* Bug 4 修复：隐藏右侧边界线 */
+.terminal-view-container {
+  border: none !important;
+}
+
+.terminal-area {
+  border-right: none !important;
+}
+
+/* 隐藏 xterm 滚动条轨道的边框 */
+.xterm .xterm-viewport::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-thumb {
+  background: var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.xterm .xterm-viewport::-webkit-scrollbar-track {
+  background: transparent;
+  border: none;
+}
+
+/* 移除 Obsidian 侧边栏可能添加的边框 */
+.workspace-leaf-content[data-type="integrated-terminal"] {
+  border-right: none !important;
+}
+
+/* Bug 2 修复：防止无障碍树被选中导致复制两遍 */
+.xterm .xterm-accessibility-tree {
+  user-select: none !important;
+  pointer-events: none !important;
 }

@@ -47,36 +47,39 @@ export class DragDropHandler {
 
     if (!e.dataTransfer) return;
 
-    // 调试：详细打印所有数据
-    console.log('=== Drag Drop Debug ===');
-    console.log('types:', Array.from(e.dataTransfer.types));
-    for (const type of e.dataTransfer.types) {
-      console.log(`[${type}]:`, e.dataTransfer.getData(type));
-    }
-    console.log('files.length:', e.dataTransfer.files.length);
-    if (e.dataTransfer.files.length > 0) {
-      for (let i = 0; i < e.dataTransfer.files.length; i++) {
-        const f = e.dataTransfer.files[i];
-        console.log(`file[${i}]:`, f.name, (f as any).path);
-      }
-    }
-    // 检查 items
-    if (e.dataTransfer.items) {
-      console.log('items.length:', e.dataTransfer.items.length);
-      for (let i = 0; i < e.dataTransfer.items.length; i++) {
-        const item = e.dataTransfer.items[i];
-        console.log(`item[${i}]:`, item.kind, item.type);
-      }
-    }
-
     const paths: string[] = [];
 
     // 优先处理系统文件拖拽（从 Finder 等）
     if (e.dataTransfer.files.length > 0) {
+      // 使用 Electron 官方 API 获取文件路径（更规范）
+      let webUtils: any = null;
+      try {
+        const electron = require('electron');
+        webUtils = electron.webUtils;
+      } catch {
+        // Electron API 不可用，回退到 file.path
+      }
+
       for (let i = 0; i < e.dataTransfer.files.length; i++) {
         const file = e.dataTransfer.files[i];
-        if ((file as any).path) {
-          paths.push((file as any).path);
+        let filePath: string | null = null;
+
+        // 优先使用 webUtils.getPathForFile()（Electron 官方 API）
+        if (webUtils?.getPathForFile) {
+          try {
+            filePath = webUtils.getPathForFile(file);
+          } catch {
+            // 回退
+          }
+        }
+
+        // 回退到 file.path（Electron 扩展属性）
+        if (!filePath && (file as any).path) {
+          filePath = (file as any).path;
+        }
+
+        if (filePath) {
+          paths.push(filePath);
         }
       }
     }
