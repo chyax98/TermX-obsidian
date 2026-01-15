@@ -67,6 +67,21 @@ export const THEMES: Record<string, ITheme> = {
   },
 };
 
+// ===== 会话恢复类型 =====
+
+export interface TabSession {
+  id: number;
+  cwd: string;  // 初始工作目录
+}
+
+export interface TerminalSession {
+  version: 1;
+  tabs: TabSession[];
+  activeTabId: number;
+}
+
+// ===== 设置类型 =====
+
 export interface TerminalSettings {
   shell: string;
   shellArgs: string[];
@@ -78,19 +93,21 @@ export interface TerminalSettings {
   defaultCwd: 'vault' | 'home' | 'custom';
   customCwd: string;
   theme: ThemeName;
+  restoreSession: boolean;  // 是否恢复会话
 }
 
 export const DEFAULT_SETTINGS: TerminalSettings = {
   shell: '',
   shellArgs: [],
   fontSize: 14,
-  fontFamily: 'Menlo, Monaco, "Courier New", monospace',  // 默认使用 Menlo（不依赖 Obsidian 设置）
+  fontFamily: 'Menlo, Monaco, "Courier New", monospace',
   cursorStyle: 'block',
   scrollback: 5000,
   copyOnSelect: true,
   defaultCwd: 'vault',
   customCwd: '',
   theme: 'auto',
+  restoreSession: true,  // 默认启用会话恢复
 };
 
 export function getDefaultShell(): string {

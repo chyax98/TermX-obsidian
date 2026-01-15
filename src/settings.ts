@@ -117,6 +117,22 @@ export class TerminalSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName('恢复会话')
+      .setDesc('重启 Obsidian 后恢复终端标签和工作目录')
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.restoreSession)
+          .onChange(async (value) => {
+            this.plugin.settings.restoreSession = value;
+            // 关闭时清除已保存的会话
+            if (!value) {
+              this.plugin.clearSavedSession();
+            }
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
       .setName('滚动缓冲行数')
       .setDesc('终端保留的历史行数')
       .addSlider((slider) =>

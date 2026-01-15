@@ -1,11 +1,12 @@
 import { Plugin, WorkspaceLeaf, MarkdownView, EventRef } from 'obsidian';
 import { TerminalView, TERMINAL_VIEW_TYPE } from './terminal-view';
 import { TerminalSettingTab } from './settings';
-import { TerminalSettings, DEFAULT_SETTINGS, getVaultPath } from './types';
+import { TerminalSettings, DEFAULT_SETTINGS, getVaultPath, TerminalSession } from './types';
 import { EditorCursorState } from './content-bridge';
 
 export default class IntegratedTerminalPlugin extends Plugin {
   settings: TerminalSettings = DEFAULT_SETTINGS;
+  private session: TerminalSession | null = null;  // 待恢复的会话
   private pendingInitialCwd: string | null = null;
   private lastCursorState: EditorCursorState | null = null;
   private cursorTrackEvents: EventRef[] = [];
@@ -24,15 +25,18 @@ export default class IntegratedTerminalPlugin extends Plugin {
     this.setupCursorTracking();
 
     // 注册视图
-    this.registerView(TERMINAL_VIEW_TYPE, (leaf) =>
-      new TerminalView(
+    this.registerView(TERMINAL_VIEW_TYPE, (leaf) => {
+      const pendingSession = this.settings.restoreSession ? this.consumeSession() : null;
+      return new TerminalView(
         leaf,
         this.settings,
         pluginDir,
         () => this.lastCursorState,
         () => this.consumePendingInitialCwd(),
-      )
-    );
+        pendingSession,
+        (session) => this.saveSession(session),
+      );
+    });
 
     // 添加命令
     this.addCommand({
@@ -193,11 +197,16 @@ export default class IntegratedTerminalPlugin extends Plugin {
   }
 
   async loadSettings(): Promise<void> {
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+    const data = await this.loadData();
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+    // 加载会话（与设置分开存储）
+    if (data?.session) {
+      this.session = data.session;
+    }
   }
 
   async saveSettings(): Promise<void> {
-    await this.saveData(this.settings);
+    await this.saveData({ ...this.settings, session: this.session });
     this.applySettingsToViews();
   }
 
@@ -217,6 +226,25 @@ export default class IntegratedTerminalPlugin extends Plugin {
     const cwd = this.pendingInitialCwd;
     this.pendingInitialCwd = null;
     return cwd;
+  }
+
+  // 消费待恢复的会话（只恢复一次）
+  private consumeSession(): TerminalSession | null {
+    const session = this.session;
+    this.session = null;
+    return session;
+  }
+
+  // 保存会话
+  private saveSession(session: TerminalSession): void {
+    this.session = session;
+    // 异步保存到磁盘（防抖已由调用方处理）
+    void this.saveData({ ...this.settings, session });
+  }
+
+  // 清除已保存的会话（用户关闭"恢复会话"开关时调用）
+  clearSavedSession(): void {
+    this.session = null;
   }
 
   private setupCursorTracking(): void {

@@ -6,7 +6,7 @@ import { PtyManager } from './pty-manager';
 import { PathLinker } from './path-linker';
 import { DragDropHandler } from './drag-drop';
 import { ContentBridge, EditorCursorState } from './content-bridge';
-import { TerminalSettings, THEMES } from './types';
+import { TerminalSettings, THEMES, TabSession, getVaultPath } from './types';
 
 function resolveCssVarColor(varName: string, fallback: string, kind: 'color' | 'background'): string {
   try {
@@ -110,6 +110,7 @@ export class TerminalTab {
   private settings: TerminalSettings;
   private exited = false;
   private cwdOverride: string | null = null;
+  private initialCwd: string;  // 记录初始工作目录，用于会话恢复
   private pluginDir: string;
   private getCursorState: () => EditorCursorState | null;
 
@@ -127,6 +128,7 @@ export class TerminalTab {
     this.pluginDir = pluginDir;
     this.getCursorState = getCursorState;
     this.cwdOverride = cwdOverride ?? null;
+    this.initialCwd = cwdOverride ?? getVaultPath(app);
 
     const theme = settings.theme === 'auto'
       ? getAutoTheme()
@@ -305,6 +307,14 @@ export class TerminalTab {
 
   isExited(): boolean {
     return this.exited;
+  }
+
+  // 序列化标签状态，用于会话恢复
+  serialize(): TabSession {
+    return {
+      id: this.id,
+      cwd: this.initialCwd,
+    };
   }
 
   dispose(): void {

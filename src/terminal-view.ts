@@ -1,6 +1,6 @@
 import { ItemView, WorkspaceLeaf, Menu, Modal, App } from 'obsidian';
 import { TerminalTab } from './terminal-tab';
-import { TerminalSettings, getVaultPath } from './types';
+import { TerminalSettings, getVaultPath, TerminalSession } from './types';
 import { EditorCursorState } from './content-bridge';
 
 export const TERMINAL_VIEW_TYPE = 'integrated-terminal';
@@ -72,6 +72,9 @@ export class TerminalView extends ItemView {
   private resizeObserver: ResizeObserver | null = null;
   private getInitialCwd: (() => string | null) | null = null;
   private bodyClassObserver: MutationObserver | null = null;
+  private pendingSession: TerminalSession | null = null;  // 待恢复的会话
+  private onSessionChange: ((session: TerminalSession) => void) | null = null;  // 会话变更回调
+  private sessionSaveTimer: ReturnType<typeof setTimeout> | null = null;  // 防抖定时器
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -79,12 +82,16 @@ export class TerminalView extends ItemView {
     pluginDir: string,
     getCursorState: () => EditorCursorState | null,
     getInitialCwd?: () => string | null,
+    pendingSession?: TerminalSession | null,
+    onSessionChange?: (session: TerminalSession) => void,
   ) {
     super(leaf);
     this.settings = settings;
     this.pluginDir = pluginDir;
     this.getCursorState = getCursorState;
     this.getInitialCwd = getInitialCwd ?? null;
+    this.pendingSession = pendingSession ?? null;
+    this.onSessionChange = onSessionChange ?? null;
   }
 
   // Get next available tab number
@@ -131,9 +138,14 @@ export class TerminalView extends ItemView {
     });
     this.bodyClassObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
 
-    // 创建第一个标签
-    const initialCwd = this.getInitialCwd?.() ?? null;
-    await this.createTab(initialCwd ?? undefined);
+    // 恢复会话或创建默认标签
+    if (this.pendingSession && this.pendingSession.tabs.length > 0) {
+      await this.restoreSession(this.pendingSession);
+      this.pendingSession = null;
+    } else {
+      const initialCwd = this.getInitialCwd?.() ?? null;
+      await this.createTab(initialCwd ?? undefined);
+    }
   }
 
   private getCurrentFileCwd(): string | null {
@@ -161,12 +173,18 @@ export class TerminalView extends ItemView {
 
     this.switchTab(tab);
     this.renderTabBar();
+
+    // 保存会话
+    this.scheduleSessionSave();
   }
 
-  private switchTab(tab: TerminalTab): void {
+  private switchTab(tab: TerminalTab, skipSave = false): void {
     this.tabs.forEach(t => t.hide());
     tab.show();
     this.activeTab = tab;
+    if (!skipSave) {
+      this.scheduleSessionSave();
+    }
   }
 
   private renderTabBar(): void {
@@ -225,6 +243,9 @@ export class TerminalView extends ItemView {
       this.switchTab(this.tabs[Math.min(idx, this.tabs.length - 1)]);
     }
     this.renderTabBar();
+
+    // 保存会话
+    this.scheduleSessionSave();
   }
 
   private setupContextMenu(tab: TerminalTab, container: HTMLElement): void {
@@ -343,7 +364,74 @@ export class TerminalView extends ItemView {
     this.activeTab?.contentBridge.appendToCurrentNote();
   }
 
+  // 获取当前会话状态
+  getSession(): TerminalSession {
+    return {
+      version: 1,
+      tabs: this.tabs.map(t => t.serialize()),
+      activeTabId: this.activeTab?.id ?? 1,
+    };
+  }
+
+  // 恢复会话
+  private async restoreSession(session: TerminalSession): Promise<void> {
+    // 空会话不恢复
+    if (session.tabs.length === 0) return;
+
+    for (const tabState of session.tabs) {
+      await this.createTabWithId(tabState.id, tabState.cwd);
+    }
+
+    // 恢复活动标签（跳过保存，恢复完成后统一保存）
+    const activeTab = this.tabs.find(t => t.id === session.activeTabId);
+    if (activeTab) {
+      this.switchTab(activeTab, true);
+    }
+    this.renderTabBar();
+  }
+
+  // 防抖保存会话（避免频繁写入）
+  private scheduleSessionSave(): void {
+    if (this.sessionSaveTimer) {
+      clearTimeout(this.sessionSaveTimer);
+    }
+    this.sessionSaveTimer = setTimeout(() => {
+      if (this.onSessionChange && this.tabs.length > 0) {
+        this.onSessionChange(this.getSession());
+      }
+      this.sessionSaveTimer = null;
+    }, 500);  // 500ms 防抖
+  }
+
+  // 创建指定 ID 的标签（用于会话恢复）
+  private async createTabWithId(id: number, cwd?: string): Promise<void> {
+    if (!this.terminalArea) return;
+
+    const tab = new TerminalTab(
+      this.app, this.settings, this.pluginDir,
+      this.getCursorState, id, cwd ?? null
+    );
+    this.tabs.push(tab);
+
+    const container = this.terminalArea.createDiv({ cls: 'terminal-wrapper' });
+    await tab.mount(container);
+    this.setupContextMenu(tab, container);
+
+    if (!this.activeTab) {
+      this.switchTab(tab);
+    }
+  }
+
   async onClose(): Promise<void> {
+    // 清理防抖定时器并立即保存会话
+    if (this.sessionSaveTimer) {
+      clearTimeout(this.sessionSaveTimer);
+      this.sessionSaveTimer = null;
+    }
+    if (this.onSessionChange && this.tabs.length > 0) {
+      this.onSessionChange(this.getSession());
+    }
+
     this.resizeObserver?.disconnect();
     this.bodyClassObserver?.disconnect();
     this.tabs.forEach(t => t.dispose());
