@@ -33,7 +33,7 @@ export class PtyManager {
       let nodePty: any;
       try {
         const path = require('path');
-        const nodePtyPath = path.join(this.pluginDir, 'node-pty');
+        const nodePtyPath = path.join(this.pluginDir, 'node_modules', 'node-pty');
         nodePty = require(nodePtyPath);
       } catch (e) {
         console.error('[TermX] 无法加载 node-pty:', e);

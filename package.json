@@ -7,7 +7,10 @@
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-    "deploy": "npm run build && mkdir -p ~/note-vsc/.obsidian/plugins/termx && cp main.js manifest.json styles.css ~/note-vsc/.obsidian/plugins/termx/ && cp -r node_modules/node-pty ~/note-vsc/.obsidian/plugins/termx/"
+    "lint": "tsc -noEmit -skipLibCheck",
+    "check": "tsc -noEmit -skipLibCheck",
+    "test": "npm run build",
+    "deploy": "node scripts/deploy.js"
   },
   "keywords": [
     "obsidian",
