@@ -1,5 +1,5 @@
 import { App, Notice, MarkdownView, EditorPosition } from 'obsidian';
-import { Terminal } from '@xterm/xterm';
+import type { Terminal } from '@xterm/xterm';
 
 // 编辑器光标状态（由 EditorCursorTracker 管理）
 export interface EditorCursorState {

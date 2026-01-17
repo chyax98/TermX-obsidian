@@ -1,5 +1,5 @@
 import { App, TFile, TFolder, TAbstractFile } from 'obsidian';
-import { Terminal } from '@xterm/xterm';
+import type { Terminal } from '@xterm/xterm';
 import { getVaultPath } from './types';
 
 export class DragDropHandler {

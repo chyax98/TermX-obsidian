@@ -1,5 +1,5 @@
 import { App, FileSystemAdapter } from 'obsidian';
-import { ITheme } from '@xterm/xterm';
+import type { ITheme } from '@xterm/xterm';
 
 // 获取 vault 根目录路径
 export function getVaultPath(app: App): string {
@@ -90,6 +90,7 @@ export interface TerminalSettings {
   cursorStyle: 'block' | 'underline' | 'bar';
   scrollback: number;
   copyOnSelect: boolean;
+  lineHeightScale: number;
   defaultCwd: 'vault' | 'home' | 'custom';
   customCwd: string;
   theme: ThemeName;
@@ -104,6 +105,7 @@ export const DEFAULT_SETTINGS: TerminalSettings = {
   cursorStyle: 'block',
   scrollback: 5000,
   copyOnSelect: true,
+  lineHeightScale: 0.95,
   defaultCwd: 'vault',
   customCwd: '',
   theme: 'auto',

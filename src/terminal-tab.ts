@@ -1,12 +1,13 @@
 import { App } from 'obsidian';
-import { Terminal, IDisposable, ITheme } from '@xterm/xterm';
-import { FitAddon } from '@xterm/addon-fit';
-import { SearchAddon } from '@xterm/addon-search';
+import type { Terminal as XtermTerminal, IDisposable, ITheme } from '@xterm/xterm';
+import type { FitAddon } from '@xterm/addon-fit';
+import type { SearchAddon } from '@xterm/addon-search';
 import { PtyManager } from './pty-manager';
+import { loadFitAddon, loadSearchAddon, loadXterm } from './xterm-loader';
 import { PathLinker } from './path-linker';
 import { DragDropHandler } from './drag-drop';
 import { ContentBridge, EditorCursorState } from './content-bridge';
-import { TerminalSettings, THEMES, TabSession, getVaultPath } from './types';
+import { DEFAULT_SETTINGS, TerminalSettings, THEMES, TabSession, getVaultPath } from './types';
 
 function resolveCssVarColor(varName: string, fallback: string, kind: 'color' | 'background'): string {
   try {
@@ -32,8 +33,60 @@ function resolveCssVarColor(varName: string, fallback: string, kind: 'color' | '
   }
 }
 
+function resolveCssVarString(varName: string, fallback: string): string {
+  try {
+    const el = document.createElement('div');
+    el.style.position = 'absolute';
+    el.style.left = '-99999px';
+    el.style.top = '0';
+    el.style.pointerEvents = 'none';
+    el.style.fontFamily = `var(${varName}, ${fallback})`;
+    document.body.appendChild(el);
+    const style = getComputedStyle(el);
+    const value = style.fontFamily || '';
+    el.remove();
+    return value.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function resolveCssVarLineHeightRatio(varName: string, fontFamily: string, fontSize: number, fallback: number): number {
+  try {
+    const el = document.createElement('div');
+    el.style.position = 'absolute';
+    el.style.left = '-99999px';
+    el.style.top = '0';
+    el.style.pointerEvents = 'none';
+    el.style.fontFamily = fontFamily;
+    el.style.fontSize = `${fontSize}px`;
+    el.style.lineHeight = `var(${varName}, ${fallback})`;
+    document.body.appendChild(el);
+    const style = getComputedStyle(el);
+    const lineHeightPx = parseFloat(style.lineHeight || '');
+    const fontSizePx = parseFloat(style.fontSize || '');
+    el.remove();
+    if (!Number.isFinite(lineHeightPx) || !Number.isFinite(fontSizePx) || fontSizePx <= 0) {
+      return fallback;
+    }
+    const ratio = lineHeightPx / fontSizePx;
+    if (!Number.isFinite(ratio) || ratio <= 0) {
+      return fallback;
+    }
+    return Math.min(Math.max(ratio, 1), 2);
+  } catch {
+    return fallback;
+  }
+}
+
 function getAutoTheme(): ITheme {
   const isDark = document.body.classList.contains('theme-dark');
+  const selectionBg = resolveCssVarColor(
+    '--text-selection',
+    isDark ? 'rgba(255,255,255,0.35)' : 'rgba(0,0,0,0.25)',
+    'background',
+  );
+  const selectionFg = resolveCssVarColor('--text-on-accent', isDark ? '#1e1e1e' : '#ffffff', 'color');
 
   // 完整的 ANSI 颜色定义，确保所有终端颜色都能正确显示
   if (isDark) {
@@ -41,8 +94,8 @@ function getAutoTheme(): ITheme {
       background: resolveCssVarColor('--background-primary', '#1e1e1e', 'background'),
       foreground: resolveCssVarColor('--text-normal', '#d4d4d4', 'color'),
       cursor: resolveCssVarColor('--text-normal', '#d4d4d4', 'color'),
-      selectionBackground: resolveCssVarColor('--text-selection', 'rgba(255,255,255,0.3)', 'background'),
-      selectionForeground: undefined,
+      selectionBackground: selectionBg,
+      selectionForeground: selectionFg,
       // 标准 ANSI 颜色 (深色主题)
       black: '#000000',
       red: '#cd3131',
@@ -62,38 +115,38 @@ function getAutoTheme(): ITheme {
       brightCyan: '#29b8db',
       brightWhite: '#ffffff',
     };
-  } else {
-    return {
-      background: resolveCssVarColor('--background-primary', '#fafafa', 'background'),
-      foreground: resolveCssVarColor('--text-normal', '#383a42', 'color'),
-      cursor: resolveCssVarColor('--text-normal', '#383a42', 'color'),
-      selectionBackground: resolveCssVarColor('--text-selection', 'rgba(0,0,0,0.3)', 'background'),
-      selectionForeground: undefined,
-      // 标准 ANSI 颜色 (浅色主题 - 需要更深的颜色)
-      black: '#000000',
-      red: '#e45649',
-      green: '#50a14f',
-      yellow: '#c18401',
-      blue: '#4078f2',
-      magenta: '#a626a4',
-      cyan: '#0184bc',
-      white: '#fafafa',
-      // Bright ANSI 颜色 (浅色主题)
-      brightBlack: '#4a4a4a',   // 关键：在浅色背景下必须足够深
-      brightRed: '#e06c75',
-      brightGreen: '#98c379',
-      brightYellow: '#d19a66',
-      brightBlue: '#61afef',
-      brightMagenta: '#c678dd',
-      brightCyan: '#56b6c2',
-      brightWhite: '#ffffff',
-    };
   }
+
+  return {
+    background: resolveCssVarColor('--background-primary', '#fafafa', 'background'),
+    foreground: resolveCssVarColor('--text-normal', '#383a42', 'color'),
+    cursor: resolveCssVarColor('--text-normal', '#383a42', 'color'),
+    selectionBackground: selectionBg,
+    selectionForeground: selectionFg,
+    // 标准 ANSI 颜色 (浅色主题 - 需要更深的颜色)
+    black: '#000000',
+    red: '#e45649',
+    green: '#50a14f',
+    yellow: '#c18401',
+    blue: '#4078f2',
+    magenta: '#a626a4',
+    cyan: '#0184bc',
+    white: '#fafafa',
+    // Bright ANSI 颜色 (浅色主题)
+    brightBlack: '#4a4a4a',   // 关键：在浅色背景下必须足够深
+    brightRed: '#e06c75',
+    brightGreen: '#98c379',
+    brightYellow: '#d19a66',
+    brightBlue: '#61afef',
+    brightMagenta: '#c678dd',
+    brightCyan: '#56b6c2',
+    brightWhite: '#ffffff',
+  };
 }
 
 export class TerminalTab {
   readonly id: number;
-  readonly terminal: Terminal;
+  readonly terminal: XtermTerminal;
   readonly fitAddon: FitAddon;
   readonly searchAddon: SearchAddon;
   readonly contentBridge: ContentBridge;
@@ -134,15 +187,24 @@ export class TerminalTab {
       ? getAutoTheme()
       : (THEMES[settings.theme] || THEMES.dark);
 
+    const { Terminal } = loadXterm(this.pluginDir);
+    const { FitAddon } = loadFitAddon(this.pluginDir);
+    const { SearchAddon } = loadSearchAddon(this.pluginDir);
+
+    const fontFamily = resolveCssVarString('--font-monospace', settings.fontFamily?.trim() || DEFAULT_SETTINGS.fontFamily);
+    const lineHeightBase = resolveCssVarLineHeightRatio('--line-height-normal', fontFamily, settings.fontSize, 1.15);
+    const lineHeightScale = Math.min(Math.max(settings.lineHeightScale || 1, 0.8), 1.2);
+    const lineHeight = lineHeightBase * lineHeightScale;
+
     this.terminal = new Terminal({
       fontSize: settings.fontSize,
-      fontFamily: settings.fontFamily,
+      fontFamily,
       cursorStyle: settings.cursorStyle,
       cursorBlink: true,
       scrollback: settings.scrollback,
       theme,
       letterSpacing: 0,  // 明确设置字符间距为 0
-      lineHeight: 1.0,   // 设置行高为 1.0（紧凑模式）
+      lineHeight,
     });
 
     this.fitAddon = new FitAddon();
@@ -261,10 +323,16 @@ export class TerminalTab {
   applySettings(settings: TerminalSettings): void {
     this.settings = settings;
 
+    const fontFamily = resolveCssVarString('--font-monospace', settings.fontFamily?.trim() || DEFAULT_SETTINGS.fontFamily);
+    const lineHeightBase = resolveCssVarLineHeightRatio('--line-height-normal', fontFamily, settings.fontSize, 1.15);
+    const lineHeightScale = Math.min(Math.max(settings.lineHeightScale || 1, 0.8), 1.2);
+    const lineHeight = lineHeightBase * lineHeightScale;
+
     this.terminal.options.fontSize = settings.fontSize;
-    this.terminal.options.fontFamily = settings.fontFamily;
+    this.terminal.options.fontFamily = fontFamily;
     this.terminal.options.cursorStyle = settings.cursorStyle;
     this.terminal.options.scrollback = settings.scrollback;
+    this.terminal.options.lineHeight = lineHeight;
 
     const theme = settings.theme === 'auto'
       ? getAutoTheme()

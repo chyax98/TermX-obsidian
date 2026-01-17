@@ -199,6 +199,9 @@ export default class IntegratedTerminalPlugin extends Plugin {
   async loadSettings(): Promise<void> {
     const data = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data);
+    if (!this.settings.lineHeightScale) {
+      this.settings.lineHeightScale = DEFAULT_SETTINGS.lineHeightScale;
+    }
     // 加载会话（与设置分开存储）
     if (data?.session) {
       this.session = data.session;

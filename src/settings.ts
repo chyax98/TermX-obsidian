@@ -101,6 +101,20 @@ export class TerminalSettingTab extends PluginSettingTab {
           })
       );
 
+    new Setting(containerEl)
+      .setName('行高比例')
+      .setDesc('基于 Obsidian 行高的缩放系数，建议范围 0.90-1.05')
+      .addSlider((slider) =>
+        slider
+          .setLimits(0.85, 1.2, 0.01)
+          .setValue(this.plugin.settings.lineHeightScale)
+          .setDynamicTooltip()
+          .onChange(async (value) => {
+            this.plugin.settings.lineHeightScale = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
     // ===== 行为 =====
     containerEl.createEl('h3', { text: '行为' });
 

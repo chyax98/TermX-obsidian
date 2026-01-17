@@ -11,6 +11,10 @@ const context = await esbuild.context({
     "obsidian",
     "electron",
     "node-pty",
+    "@xterm/xterm",
+    "@xterm/addon-fit",
+    "@xterm/addon-search",
+    "@xterm/addon-web-links",
     "@codemirror/autocomplete",
     "@codemirror/collab",
     "@codemirror/commands",
@@ -31,6 +35,7 @@ const context = await esbuild.context({
   treeShaking: true,
   outfile: "main.js",
   minify: prod,
+  minifyIdentifiers: false,
 });
 
 if (prod) {

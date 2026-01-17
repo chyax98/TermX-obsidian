@@ -1,5 +1,5 @@
 import { App, TFile, MarkdownView } from 'obsidian';
-import { Terminal, ITerminalAddon } from '@xterm/xterm';
+import type { Terminal, ITerminalAddon } from '@xterm/xterm';
 import { adapters, LinkMatch } from './path-adapters';
 import { getVaultPath } from './types';
 
